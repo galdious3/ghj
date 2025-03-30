@@ -1,0 +1,81 @@
+import { useState } from "react";
+import BookingList from "@/components/booking-list";
+import AddBookingForm from "@/components/add-booking-form";
+import { Calendar, CheckCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<"view" | "add">("view");
+  const { toast } = useToast();
+  
+  const handleTabChange = (tab: "view" | "add") => {
+    setActiveTab(tab);
+  };
+  
+  const handleFormSubmitSuccess = () => {
+    toast({
+      title: "نجاح!",
+      description: "تم حفظ السجل بنجاح.",
+      className: "bg-white border border-neutral-200",
+    });
+    
+    // الانتقال للتبويب عرض بعد النجاح
+    setTimeout(() => {
+      setActiveTab("view");
+    }, 500);
+  };
+
+  return (
+    <div className="bg-neutral-100 min-h-screen">
+      <header className="bg-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <Calendar className="h-5 w-5 text-primary mr-2" />
+              <h1 className="text-xl font-medium text-neutral-900">نظام الحجز</h1>
+            </div>
+            <span className="text-sm text-neutral-500">إدارة سجلاتك بكفاءة</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* تنقل التبويبات */}
+        <div className="mb-6 border-b border-neutral-200">
+          <div className="flex -mb-px">
+            <button 
+              onClick={() => handleTabChange("view")} 
+              className={`mr-8 py-3 text-sm font-medium flex items-center ${
+                activeTab === "view" 
+                  ? "border-b-2 border-primary text-primary" 
+                  : "text-neutral-500 hover:text-primary"
+              }`}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              عرض السجلات
+            </button>
+            <button 
+              onClick={() => handleTabChange("add")} 
+              className={`mr-8 py-3 text-sm font-medium flex items-center ${
+                activeTab === "add" 
+                  ? "border-b-2 border-primary text-primary" 
+                  : "text-neutral-500 hover:text-primary"
+              }`}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              إضافة سجل جديد
+            </button>
+          </div>
+        </div>
+
+        {/* محتوى التبويب */}
+        <div className={activeTab === "view" ? "block" : "hidden"}>
+          <BookingList />
+        </div>
+        <div className={activeTab === "add" ? "block" : "hidden"}>
+          <AddBookingForm onSubmitSuccess={handleFormSubmitSuccess} />
+        </div>
+      </main>
+    </div>
+  );
+}
