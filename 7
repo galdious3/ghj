@@ -1,0 +1,183 @@
+import { type User, type InsertUser, type Mus, type InsertMus } from "@shared/schema";
+
+// تحديث واجهة التخزين للتعامل مع جدول mus
+export interface IStorage {
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  
+  // Mus methods
+  getAllMus(): Promise<Mus[]>;
+  getMusById(id: number): Promise<Mus | undefined>;
+  createMus(record: InsertMus): Promise<Mus>;
+  updateMus(id: number, record: InsertMus): Promise<Mus | undefined>;
+  deleteMus(id: number): Promise<boolean>;
+}
+
+// بيانات تجريبية لاختبار التطبيق (سيتم استبدالها باتصال قاعدة البيانات في الإنتاج)
+const memMusData: Mus[] = [
+  {
+    name: "أحمد محمد",
+    Age: 30,
+    "name of dep": "هندسة",
+    ID: 1,
+    "his accountl": 1000
+  },
+  {
+    name: "محمد علي",
+    Age: 28,
+    "name of dep": "صيدلة",
+    ID: 2,
+    "his accountl": 2500
+  },
+  {
+    name: "سارة أحمد",
+    Age: 35,
+    "name of dep": "طب",
+    ID: 3,
+    "his accountl": 4000
+  },
+  {
+    name: "خالد محمود",
+    Age: 40,
+    "name of dep": "تكنولوجيا",
+    ID: 4,
+    "his accountl": 3500
+  },
+  {
+    name: "زينب علي",
+    Age: 32,
+    "name of dep": "إدارة",
+    ID: 5,
+    "his accountl": 2800
+  },
+  {
+    name: "عمر حسين",
+    Age: 45,
+    "name of dep": "قانون",
+    ID: 6,
+    "his accountl": 5000
+  }
+];
+
+// استخدام تخزين في الذاكرة بدلاً من قاعدة بيانات MySQL
+export class MemStorage implements IStorage {
+  // مصفوفة لتخزين بيانات المستخدمين
+  private users: User[] = [];
+  // مصفوفة لتخزين بيانات جدول mus
+  private musRecords: Mus[] = [...memMusData];
+  private nextMusId = 7; // رقم ID القادم (7 لأن هناك 6 سجلات)
+
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.find(user => user.id === id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return this.users.find(user => user.username === username);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const newUser: User = { id: this.users.length + 1, ...insertUser };
+    this.users.push(newUser);
+    return newUser;
+  }
+  
+  // طرق إدارة جدول mus
+  async getAllMus(): Promise<Mus[]> {
+    return this.musRecords;
+  }
+  
+  async getMusById(id: number): Promise<Mus | undefined> {
+    return this.musRecords.find(record => record.ID === id);
+  }
+  
+  async createMus(insertRecord: InsertMus): Promise<Mus> {
+    const newMus: Mus = {
+      ...insertRecord,
+      ID: insertRecord.ID || this.nextMusId++,
+      "his accountl": insertRecord["his accountl"] || 0
+    };
+    
+    this.musRecords.push(newMus);
+    return newMus;
+  }
+  
+  async updateMus(id: number, insertRecord: InsertMus): Promise<Mus | undefined> {
+    const index = this.musRecords.findIndex(record => record.ID === id);
+    
+    if (index === -1) {
+      return undefined;
+    }
+    
+    const updatedMus: Mus = {
+      ...this.musRecords[index],
+      ...insertRecord,
+      ID: id,
+    };
+    
+    this.musRecords[index] = updatedMus;
+    return updatedMus;
+  }
+  
+  async deleteMus(id: number): Promise<boolean> {
+    const initialLength = this.musRecords.length;
+    this.musRecords = this.musRecords.filter(record => record.ID !== id);
+    return this.musRecords.length < initialLength;
+  }
+}
+
+// استرجاع استخدام قاعدة بيانات MySQL الحقيقية
+import { db } from "./db";
+
+// تعريف فئة MySQLStorage للتعامل مع قاعدة بيانات MySQL
+export class MySQLStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    // سيتم تنفيذ هذا لاحقًا إذا لزم الأمر
+    return undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    // سيتم تنفيذ هذا لاحقًا إذا لزم الأمر
+    return undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    // سيتم تنفيذ هذا لاحقًا إذا لزم الأمر
+    return { id: 1, username: insertUser.username, password: insertUser.password };
+  }
+  
+  // طرق إدارة جدول mus
+  async getAllMus(): Promise<Mus[]> {
+    const records = await db.mus.findAll();
+    return records as Mus[];
+  }
+  
+  async getMusById(id: number): Promise<Mus | undefined> {
+    const record = await db.mus.findById(id);
+    return record as Mus || undefined;
+  }
+  
+  async createMus(insertRecord: InsertMus): Promise<Mus> {
+    const record = await db.mus.create(insertRecord);
+    return record as Mus;
+  }
+  
+  async updateMus(id: number, insertRecord: InsertMus): Promise<Mus | undefined> {
+    const record = await this.getMusById(id);
+    
+    if (!record) {
+      return undefined;
+    }
+    
+    const updatedRecord = await db.mus.update(id, insertRecord);
+    return updatedRecord as Mus;
+  }
+  
+  async deleteMus(id: number): Promise<boolean> {
+    return await db.mus.delete(id);
+  }
+}
+
+// نستخدم تخزين في الذاكرة للتجربة في بيئة Replit
+// يجب تغيير هذا إلى MySQLStorage عند تشغيل التطبيق محلياً على جهازك
+export const storage = new MemStorage();
