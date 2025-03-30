@@ -1,0 +1,28 @@
+import { apiRequest } from "./queryClient";
+import { Mus, InsertMus } from "@shared/schema";
+
+export const MusApi = {
+  getAll: async (): Promise<Mus[]> => {
+    const response = await apiRequest("GET", "/api/mus");
+    return response.json();
+  },
+  
+  getById: async (id: number): Promise<Mus> => {
+    const response = await apiRequest("GET", `/api/mus/${id}`);
+    return response.json();
+  },
+  
+  create: async (record: InsertMus): Promise<Mus> => {
+    const response = await apiRequest("POST", "/api/mus", record);
+    return response.json();
+  },
+  
+  update: async (id: number, record: InsertMus): Promise<Mus> => {
+    const response = await apiRequest("PUT", `/api/mus/${id}`, record);
+    return response.json();
+  },
+  
+  delete: async (id: number): Promise<void> => {
+    await apiRequest("DELETE", `/api/mus/${id}`);
+  }
+};
