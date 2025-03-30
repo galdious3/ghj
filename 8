@@ -1,0 +1,108 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertMusSchema } from "@shared/schema";
+import { fromZodError } from "zod-validation-error";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // مسارات API لجدول mus
+  app.get("/api/mus", async (req: Request, res: Response) => {
+    try {
+      const records = await storage.getAllMus();
+      res.json(records);
+    } catch (error) {
+      console.error("خطأ في جلب السجلات:", error);
+      res.status(500).json({ message: "فشل في جلب السجلات" });
+    }
+  });
+
+  app.get("/api/mus/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "معرف سجل غير صالح" });
+      }
+
+      const record = await storage.getMusById(id);
+      if (!record) {
+        return res.status(404).json({ message: "لم يتم العثور على السجل" });
+      }
+
+      res.json(record);
+    } catch (error) {
+      console.error("خطأ في جلب السجل:", error);
+      res.status(500).json({ message: "فشل في جلب السجل" });
+    }
+  });
+
+  app.post("/api/mus", async (req: Request, res: Response) => {
+    try {
+      const result = insertMusSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        const validationError = fromZodError(result.error);
+        return res.status(400).json({ 
+          message: "خطأ في التحقق", 
+          errors: validationError.message 
+        });
+      }
+
+      const newRecord = await storage.createMus(result.data);
+      res.status(201).json(newRecord);
+    } catch (error) {
+      console.error("خطأ في إنشاء السجل:", error);
+      res.status(500).json({ message: "فشل في إنشاء السجل" });
+    }
+  });
+
+  app.put("/api/mus/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "معرف سجل غير صالح" });
+      }
+
+      const result = insertMusSchema.safeParse(req.body);
+      if (!result.success) {
+        const validationError = fromZodError(result.error);
+        return res.status(400).json({ 
+          message: "خطأ في التحقق", 
+          errors: validationError.message 
+        });
+      }
+
+      const updatedRecord = await storage.updateMus(id, result.data);
+      if (!updatedRecord) {
+        return res.status(404).json({ message: "لم يتم العثور على السجل" });
+      }
+
+      res.json(updatedRecord);
+    } catch (error) {
+      console.error("خطأ في تحديث السجل:", error);
+      res.status(500).json({ message: "فشل في تحديث السجل" });
+    }
+  });
+
+  app.delete("/api/mus/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "معرف سجل غير صالح" });
+      }
+
+      const deleted = await storage.deleteMus(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "لم يتم العثور على السجل" });
+      }
+
+      res.json({ message: "تم حذف السجل بنجاح" });
+    } catch (error) {
+      console.error("خطأ في حذف السجل:", error);
+      res.status(500).json({ message: "فشل في حذف السجل" });
+    }
+  });
+
+  const httpServer = createServer(app);
+
+  return httpServer;
+}
