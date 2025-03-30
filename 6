@@ -1,0 +1,92 @@
+import mysql from 'mysql2/promise';
+import * as schema from "@shared/schema";
+
+// إعدادات الاتصال بقاعدة بيانات MySQL بناءً على المعلومات المقدمة من المستخدم
+const connectionConfig = {
+  host: 'localhost',
+  port: 3306,
+  user: 'root',
+  password: 'qwe123iop789',  // كلمة المرور المقدمة من المستخدم
+  database: 'sys',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+// إنشاء اتصال قاعدة بيانات MySQL
+const pool = mysql.createPool(connectionConfig);
+
+// دالة للاستعلام من قاعدة البيانات
+export async function query(sql: string, params: any[] = []) {
+  try {
+    const [results] = await pool.execute(sql, params);
+    return results;
+  } catch (error) {
+    console.error("Database query error:", error);
+    throw error;
+  }
+}
+
+// تعريف نوع للتعامل مع ناتج العمليات
+type QueryResultInsert = {
+  insertId: number;
+  affectedRows: number;
+};
+
+// نموذج البيانات بناء على الجدول في قاعدة البيانات كما في ملف SQL
+type Mus = {
+  name: string;        // المفتاح الأساسي
+  Age: number;
+  "name of dep": string;
+  ID: number;
+  "his accountl": number;
+};
+
+export const db = {
+  mus: {
+    // دالة للحصول على جميع السجلات
+    findAll: async () => {
+      return await query('SELECT * FROM sys.mus') as Mus[];
+    },
+    
+    // دالة للحصول على سجل واحد بواسطة المعرف
+    findById: async (id: number) => {
+      const results = await query('SELECT * FROM sys.mus WHERE ID = ?', [id]) as Mus[];
+      return results.length > 0 ? results[0] : null;
+    },
+    
+    // دالة لإنشاء سجل جديد بناء على بنية الجدول
+    create: async (data: any) => {
+      const { name, Age, "name of dep": nameOfDep, "his accountl": hisAccountl = 0 } = data;
+      const ID = data.ID || 0; // نحصل على رقم ID من البيانات أو نستخدم 0 كقيمة افتراضية
+      
+      const result = await query(
+        'INSERT INTO sys.mus (name, Age, `name of dep`, ID, `his accountl`) VALUES (?, ?, ?, ?, ?)',
+        [name, Age, nameOfDep, ID, hisAccountl]
+      ) as QueryResultInsert;
+      
+      return { name, Age, "name of dep": nameOfDep, ID, "his accountl": hisAccountl };
+    },
+    
+    // دالة لتحديث سجل بناء على بنية الجدول
+    update: async (id: number, data: any) => {
+      const { name, Age, "name of dep": nameOfDep, "his accountl": hisAccountl = 0 } = data;
+      
+      await query(
+        'UPDATE sys.mus SET name = ?, Age = ?, `name of dep` = ?, `his accountl` = ? WHERE ID = ?',
+        [name, Age, nameOfDep, hisAccountl, id]
+      );
+      
+      return { name, Age, "name of dep": nameOfDep, ID: id, "his accountl": hisAccountl };
+    },
+    
+    // دالة لحذف سجل
+    delete: async (id: number) => {
+      const result = await query('DELETE FROM sys.mus WHERE ID = ?', [id]) as QueryResultInsert;
+      return result.affectedRows > 0;
+    }
+  },
+  users: {
+    // سيتم تنفيذ هذا لاحقًا إذا لزم الأمر
+  }
+};
