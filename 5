@@ -1,0 +1,33 @@
+// نستخدم زود لوصف مخطط البيانات بدلاً من Drizzle نظراً لاستخدامنا MySQL
+import { z } from "zod";
+
+// مخطط المستخدمين
+export const userSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  password: z.string()
+});
+
+// مخطط جدول mus بناءً على الجدول الموجود في قاعدة البيانات (ملف SQL)
+export const musSchema = z.object({
+  name: z.string(), // المفتاح الأساسي كما يظهر في ملف SQL
+  Age: z.number(),
+  "name of dep": z.string(), // لاحظ أن هناك مسافات في اسم العمود في قاعدة البيانات
+  ID: z.number(),
+  "his accountl": z.number() // لاحظ أن هناك مسافات في اسم العمود واختلاف في التهجئة (l بدلاً من i)
+});
+
+// مخطط إدخال بيانات المستخدمين
+export const insertUserSchema = userSchema.omit({
+  id: true
+});
+
+// تحديث مخطط إدخال بيانات الحجوزات (تضمين كل الحقول حتى تعمل بشكل صحيح)
+export const insertMusSchema = musSchema;
+
+// أنواع البيانات المستخدمة في التطبيق
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = z.infer<typeof userSchema>;
+
+export type InsertMus = z.infer<typeof insertMusSchema>;
+export type Mus = z.infer<typeof musSchema>;
